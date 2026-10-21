@@ -67,11 +67,12 @@ func TasksEdit(c buffalo.Context) error {
 	}
 
 	c.Set("task", task)
+	c.Set("dueDate", task.DueDateValue())
 	c.Set("errors", validate.NewErrors())
 	return c.Render(http.StatusOK, r.HTML("tasks/edit.plush.html"))
 }
 
-// TasksUpdate actualiza solo el título, conservando los demás datos de la tarea.
+// TasksUpdate actualiza el título y la fecha límite, conservando los demás datos de la tarea.
 func TasksUpdate(c buffalo.Context) error {
 	tx := c.Value("tx").(*pop.Connection)
 
@@ -81,12 +82,28 @@ func TasksUpdate(c buffalo.Context) error {
 	}
 
 	input := struct {
-		Title string `form:"title" json:"title"`
+		Title   string `form:"title" json:"title"`
+		DueDate string `form:"due_date" json:"due_date"`
 	}{}
 	if err := c.Bind(&input); err != nil {
 		return err
 	}
 	task.Title = strings.TrimSpace(input.Title)
+
+	dueDate, dueErr := models.ParseDueDate(input.DueDate)
+	if dueErr != nil {
+		verrs, err := task.Validate(tx)
+		if err != nil {
+			return err
+		}
+		verrs.Add("due_date", dueErr.Error())
+
+		c.Set("task", task)
+		c.Set("dueDate", input.DueDate)
+		c.Set("errors", verrs)
+		return c.Render(http.StatusUnprocessableEntity, r.HTML("tasks/edit.plush.html"))
+	}
+	task.DueDate = dueDate
 
 	verrs, err := tx.ValidateAndUpdate(task)
 	if err != nil {
@@ -94,6 +111,7 @@ func TasksUpdate(c buffalo.Context) error {
 	}
 	if verrs.HasAny() {
 		c.Set("task", task)
+		c.Set("dueDate", input.DueDate)
 		c.Set("errors", verrs)
 		return c.Render(http.StatusUnprocessableEntity, r.HTML("tasks/edit.plush.html"))
 	}

@@ -29,7 +29,16 @@
               <span class="toggle-label sr-only"><%= if (t.Completed) { %>Reabrir<% } else { %>Completar<% } %></span>
             </button>
           </form>
-          <span class="task-title"><%= t.Title %></span>
+          <div class="task-main">
+            <span class="task-title"><%= t.Title %></span>
+            <%= if (t.DueDate) { %>
+              <span class="task-due">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>
+                <span class="sr-only">Fecha límite:</span>
+                <time datetime="<%= t.DueDateValue() %>"><%= t.DueDateLabel() %></time>
+              </span>
+            <% } %>
+          </div>
           <%= if (t.Completed) { %>
             <span class="task-status">Completada</span>
           <% } %>
